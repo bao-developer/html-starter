@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="vi" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kéo Co Kiến Thức</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&amp;family=Nunito:wght@600;700;800;900&amp;display=swap" rel="stylesheet">
+  <style>
+@keyframes pulse-glow { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.2)} }
+@keyframes bounce-in { 0%{transform:scale(0.3);opacity:0} 50%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+@keyframes confetti-fall { 0%{transform:translateY(-10px) rotate(0deg);opacity:1} 100%{transform:translateY(60px) rotate(720deg);opacity:0} }
+@keyframes rope-tense { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.95)} }
+@keyframes celebrating { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.btn-answer { transition: all 0.15s ease; }
+.btn-answer:hover:not(:disabled) { transform: scale(1.05); }
+.btn-answer:active:not(:disabled) { transform: scale(0.95); }
+.btn-answer:disabled { opacity: 0.5; cursor: not-allowed; }
+.correct-flash { animation: pulse-glow 0.3s ease; }
+.wrong-shake { animation: shake 0.3s ease; }
+.modal-enter { animation: bounce-in 0.4s ease; }
+.celebrating { animation: celebrating 0.4s ease infinite; }
+</style>
+  <script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        bangers: ['Bangers', 'cursive'],
+        nunito: ['Nunito', 'sans-serif'],
+      }
+    }
+  }
+}
+</script>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gray-900 font-nunito overflow-hidden">
+  <div id="root" class="h-full w-full"></div>
+  <script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+// --- Config ---
+const defaultConfig = {
+  game_title: 'Kéo co kiến thức',
+  blue_team_name: 'Đội Xanh',
+  red_team_name: 'Đội Đỏ',
+  background_color: '#0f172a',
+  surface_color: '#1e293b',
+  text_color: '#f8fafc',
+  primary_action_color: '#3b82f6',
+  secondary_action_color: '#ef4444',
+  font_family: 'Nunito',
+  font_size: 16,
+};
+
+let config = { ...defaultConfig };
+
+const scratchQuestions = [
+  {
+    text: 'Khối lệnh nào dùng để lặp lại một hành động vô hạn lần?',
+    answer: 'Lặp lại mãi mãi',
+    options: ['Lặp lại mãi mãi', 'Nếu...thì', 'Chờ 1 giây', 'Di chuyển']
+  },
+  {
+    text: 'Để tạo một sprite mới trong Scratch, bạn chọn nút nào?',
+    answer: 'Hình vuông với con mèo +',
+    options: ['Hình vuông với con mèo +', 'Thư mục màu xanh', 'Nút play', 'Cái thùng rác']
+  },
+  {
+    text: 'Khối lệnh nào dùng để kiểm tra một điều kiện?',
+    answer: 'Nếu...thì',
+    options: ['Nếu...thì', 'Di chuyển', 'Lặp lại', 'Nói']
+  },
+  {
+    text: 'Muốn quay một sprite, bạn dùng khối lệnh nào?',
+    answer: 'Xoay...độ',
+    options: ['Xoay...độ', 'Đổi màu', 'Thay đổi kích thước', 'Ẩn']
+  },
+  {
+    text: 'Khối lệnh nào phát ra âm thanh trong Scratch?',
+    answer: 'Phát âm thanh',
+    options: ['Phát âm thanh', 'Vẽ đường', 'Thay quần áo', 'Đổi cảnh']
+  }
+];
+
+function generateQuestion() {
+  const q = scratchQuestions[Math.floor(Math.random() * scratchQuestions.length)];
+  return {
+    text: q.text,
+    answer: q.answer,
+    options: q.options.sort(() => Math.random() - 0.5)
+  };
+}
+
+// --- Components ---
+function ReadyScreen({ onStart, cfg }) {
+  return (
+    <div className="h-full w-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #5f1e1e 100%)' }}>
+      <div className="text-center modal-enter">
+        <div className="text-7xl mb-6">🪢</div>
+        <h1 className="font-bangers text-5xl md:text-7xl text-white mb-4 tracking-wider" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+          {cfg.game_title}
+        </h1>
+        <p className="text-gray-300 text-lg mb-2">{cfg.blue_team_name} vs {cfg.red_team_name}</p>
+        <p className="text-gray-400 mb-8 max-w-md mx-auto">Giải phép tính nhanh nhất có thể! Đội nào nhiều điểm hơn sẽ kéo sợi dây về phía mình.</p>
+        <button
+          onClick={onStart}
+          className="px-12 py-4 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold text-2xl rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+        >
+          ⚡ Bắt đầu!
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QuestionPanel({ team, question, onAnswer, disabled, cfg, questionTimer }) {
+  const isBlue = team === 'blue';
+  const [flash, setFlash] = useState(null);
+
+  const handleKeyPress = (key, optIndex) => {
+    if (disabled || flash) return;
+    const opt = question.options[optIndex];
+    if (!opt) return;
+    const correct = opt === question.answer;
+    setFlash({ opt, correct });
+    setTimeout(() => setFlash(null), 300);
+    onAnswer(correct);
+  };
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (disabled || flash) return;
+      const key = e.key.toUpperCase();
+      if (isBlue && ['Q', 'W', 'A', 'S'].includes(key)) {
+        const idx = { Q: 0, W: 1, A: 2, S: 3 }[key];
+        handleKeyPress(key, idx);
+        e.preventDefault();
+      } else if (!isBlue && ['O', 'P', 'K', 'L'].includes(key)) {
+        const idx = { O: 0, P: 1, K: 2, L: 3 }[key];
+        handleKeyPress(key, idx);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [disabled, flash, question]);
+
+  const bg = isBlue
+    ? 'bg-gradient-to-b from-blue-800 to-blue-950'
+    : 'bg-gradient-to-b from-red-800 to-red-950';
+
+  const keyMap = isBlue ? ['Q', 'W', 'A', 'S'] : ['O', 'P', 'K', 'L'];
+
+  return (
+    <div className={`flex flex-col items-center justify-center h-full ${bg} p-3 md:p-6 relative overflow-hidden`}>
+      {/* Decorative circles */}
+      <div className={`absolute top-0 ${isBlue ? 'left-0' : 'right-0'} w-40 h-40 rounded-full ${isBlue ? 'bg-blue-700' : 'bg-red-700'} opacity-20 -translate-x-1/2 -translate-y-1/2`}></div>
+
+      <div className="text-white text-center z-10 w-full max-w-xs">
+        <div className="bg-black/30 backdrop-blur rounded-2xl p-4 md:p-6 mb-3 md:mb-4">
+          <p className="text-xs uppercase tracking-widest opacity-70 mb-1">Câu hỏi</p>
+          <p className="font-bangers text-3xl md:text-5xl tracking-wider">{question.text}</p>
+          <p className={`font-bangers text-2xl mt-2 ${questionTimer <= 10 ? 'text-red-300' : 'text-yellow-300'}`}>{questionTimer}s</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
+          {question.options.map((opt, i) => {
+            let extra = '';
+            if (flash && flash.opt === opt) {
+              extra = flash.correct ? 'correct-flash ring-4 ring-green-400 bg-green-600' : 'wrong-shake ring-4 ring-red-300 bg-red-600';
+            }
+            return (
+              <div key={i} className="flex flex-col items-center">
+                <button
+                  disabled={disabled}
+                  onClick={() => handleKeyPress(keyMap[i], i)}
+                  className={`btn-answer py-2 md:py-3 rounded-xl font-extrabold text-sm md:text-lg text-white shadow-md w-full ${extra} ${
+                    isBlue ? 'bg-blue-600 hover:bg-blue-500' : 'bg-red-600 hover:bg-red-500'
+                  } ${disabled ? '' : 'active:ring-2 ring-white/50'}`}
+                >
+                  {opt}
+                </button>
+                <p className="text-xs font-bold mt-1 opacity-70">{keyMap[i]}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TugOfWar({ diff, maxDiff, gameOver, winner }) {
+  // diff > 0 means blue leads, diff < 0 means red leads
+  const clampedDiff = Math.max(-maxDiff, Math.min(maxDiff, diff));
+  const percent = (clampedDiff / maxDiff) * 40; // max 40% shift
+
+  const blueEmoji = '🏃‍♂️';
+  const redEmoji = '🏃‍♀️';
+
+  const winCelebrate = gameOver && winner;
+
+  return (
+    <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-amber-100 relative overflow-hidden" style={{ minWidth: '200px' }}>
+      {/* Dashed center line */}
+      <div className="absolute top-0 bottom-0 left-1/2 border-l-2 border-dashed border-amber-400 opacity-60" style={{ transform: 'translateX(-50%)' }}></div>
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-amber-200 text-amber-700 text-xs font-bold px-2 py-0.5 rounded">VẠCH ĐÍCH</div>
+
+      {/* Tug of war scene */}
+      <div className="relative flex items-center justify-center w-full transition-transform duration-500 ease-out" style={{ transform: `translateX(${-percent}%)` }}>
+        {/* Blue team */}
+        <div className={`flex items-center ${winCelebrate && winner === 'blue' ? 'celebrating' : ''}`}>
+          <span className="text-2xl md:text-3xl" style={{ transform: 'scaleX(-1)' }}>{blueEmoji}</span>
+          <span className="text-xl md:text-2xl" style={{ transform: 'scaleX(-1)' }}>{blueEmoji}</span>
+          <span className="text-lg md:text-xl" style={{ transform: 'scaleX(-1)' }}>{blueEmoji}</span>
+        </div>
+
+        {/* Rope */}
+        <div className="relative mx-1 flex items-center">
+          <div className="w-16 md:w-24 h-1.5 bg-amber-700 rounded" style={{ animation: diff !== 0 ? 'rope-tense 0.5s ease infinite' : 'none' }}></div>
+          {/* Ribbon/bow */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-3 text-lg md:text-xl">🎀</div>
+        </div>
+
+        {/* Red team */}
+        <div className={`flex items-center ${winCelebrate && winner === 'red' ? 'celebrating' : ''}`}>
+          <span className="text-lg md:text-xl">{redEmoji}</span>
+          <span className="text-xl md:text-2xl">{redEmoji}</span>
+          <span className="text-2xl md:text-3xl">{redEmoji}</span>
+        </div>
+      </div>
+
+      {/* Ground */}
+      <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-amber-300 to-transparent"></div>
+    </div>
+  );
+}
+
+function GameOverModal({ blueScore, redScore, onRestart, cfg }) {
+  const winner = blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'draw';
+  const title = winner === 'draw' ? 'Hoà!' : winner === 'blue' ? `${cfg.blue_team_name} thắng!` : `${cfg.red_team_name} thắng!`;
+  const emoji = winner === 'draw' ? '🤝' : '🏆';
+  const color = winner === 'blue' ? 'text-blue-400' : winner === 'red' ? 'text-red-400' : 'text-yellow-400';
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-900 rounded-3xl p-8 text-center max-w-sm w-full modal-enter border border-gray-700 shadow-2xl">
+        <div className="text-6xl mb-4">{emoji}</div>
+        <h2 className={`font-bangers text-4xl ${color} mb-4`}>{title}</h2>
+        <div className="flex justify-center gap-8 mb-6">
+          <div className="text-center">
+            <p className="text-blue-400 font-bold text-sm">{cfg.blue_team_name}</p>
+            <p className="text-white font-bangers text-3xl">{blueScore}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-red-400 font-bold text-sm">{cfg.red_team_name}</p>
+            <p className="text-white font-bangers text-3xl">{redScore}</p>
+          </div>
+        </div>
+        <button onClick={onRestart} className="px-8 py-3 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-extrabold text-lg rounded-xl transition-all hover:scale-105 active:scale-95">
+          🔄 Chơi lại
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [cfg, setCfg] = useState({ ...defaultConfig });
+  const [phase, setPhase] = useState('ready'); // ready | playing | ended
+  const [blueScore, setBlueScore] = useState(0);
+  const [redScore, setRedScore] = useState(0);
+  const [blueQ, setBlueQ] = useState(generateQuestion);
+  const [redQ, setRedQ] = useState(generateQuestion);
+  const [questionTimer, setQuestionTimer] = useState(60);
+  const [muted, setMuted] = useState(false);
+  const timerRef = useRef(null);
+
+  // Audio context for sound effects
+  const audioCtx = useRef(null);
+  const playSound = useCallback((correct) => {
+    if (muted) return;
+    try {
+      if (!audioCtx.current) audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioCtx.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = correct ? 880 : 300;
+      gain.gain.value = 0.1;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } catch(e) {}
+  }, [muted]);
+
+  const startGame = () => {
+    setPhase('playing');
+    setQuestionTimer(60);
+    setBlueScore(0);
+    setRedScore(0);
+    setBlueQ(generateQuestion());
+    setRedQ(generateQuestion());
+  };
+
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    timerRef.current = setInterval(() => {
+      setQuestionTimer(t => {
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          setPhase('ended');
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [phase]);
+
+  const handleBlueAnswer = (correct) => {
+    playSound(correct);
+    if (correct) setBlueScore(s => s + 1);
+    setBlueQ(generateQuestion());
+  };
+
+  const handleRedAnswer = (correct) => {
+    playSound(correct);
+    if (correct) setRedScore(s => s + 1);
+    setRedQ(generateQuestion());
+  };
+
+  const diff = blueScore - redScore;
+  const disabled = phase !== 'playing';
+  const maxDiff = 10;
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.();
+  };
+
+  // Element SDK
+  useEffect(() => {
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (c) => setCfg({ ...defaultConfig, ...c }),
+        mapToCapabilities: (c) => ({
+          recolorables: [
+            { get: () => c.background_color || defaultConfig.background_color, set: (v) => { c.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+            { get: () => c.surface_color || defaultConfig.surface_color, set: (v) => { c.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+            { get: () => c.text_color || defaultConfig.text_color, set: (v) => { c.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+            { get: () => c.primary_action_color || defaultConfig.primary_action_color, set: (v) => { c.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); } },
+            { get: () => c.secondary_action_color || defaultConfig.secondary_action_color, set: (v) => { c.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } },
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => c.font_family || defaultConfig.font_family,
+            set: (v) => { c.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+          },
+          fontSizeable: {
+            get: () => c.font_size || defaultConfig.font_size,
+            set: (v) => { c.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+          }
+        }),
+        mapToEditPanelValues: (c) => new Map([
+          ['game_title', c.game_title || defaultConfig.game_title],
+          ['blue_team_name', c.blue_team_name || defaultConfig.blue_team_name],
+          ['red_team_name', c.red_team_name || defaultConfig.red_team_name],
+        ])
+      });
+    }
+  }, []);
+
+  if (phase === 'ready') return <ReadyScreen onStart={startGame} cfg={cfg} />;
+
+  const winner = blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : null;
+
+  return (
+    <div className="h-full w-full flex flex-col" style={{ background: cfg.background_color }}>
+      {/* Header */}
+      <header className="flex items-center h-14 px-2 md:px-4 shrink-0 bg-gray-900/90 border-b border-gray-700">
+        {/* Blue score area - left third */}
+        <div className="flex-1 flex justify-center">
+          <div className="flex items-center gap-2">
+            <span className="text-blue-400 font-bold text-sm md:text-base">{cfg.blue_team_name}</span>
+            <span className="font-bangers text-2xl md:text-3xl text-blue-300">{blueScore}</span>
+            <span className="text-xs text-blue-300 ml-1">Q/W/A/S</span>
+          </div>
+        </div>
+
+        {/* Center - timer + title */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <p className="font-bangers text-xs md:text-sm text-gray-400 tracking-wider leading-none">{cfg.game_title}</p>
+          <p className={`font-bangers text-2xl md:text-3xl tracking-wider leading-none ${questionTimer <= 10 ? 'text-red-400' : 'text-yellow-300'}`}>
+            {questionTimer}s
+          </p>
+        </div>
+
+        {/* Red score + controls - right third */}
+        <div className="flex-1 flex justify-center items-center gap-3">
+          <span className="text-xs text-red-300">O/P/K/L</span>
+          <div className="flex items-center gap-2">
+            <span className="font-bangers text-2xl md:text-3xl text-red-300">{redScore}</span>
+            <span className="text-red-400 font-bold text-sm md:text-base">{cfg.red_team_name}</span>
+          </div>
+          <div className="flex gap-1 ml-2">
+            <button onClick={() => setMuted(!muted)} className="text-gray-400 hover:text-white p-1 transition-colors">
+              {muted ? <span className="text-lg">🔇</span> : <span className="text-lg">🔊</span>}
+            </button>
+            <button onClick={toggleFullscreen} className="text-gray-400 hover:text-white p-1 transition-colors">
+              <span className="text-lg">⛶</span>
+            </button>
+            <button onClick={() => { clearInterval(timerRef.current); setPhase('ready'); }} className="text-gray-400 hover:text-white p-1 transition-colors">
+              <span className="text-lg">✕</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main game area */}
+      <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
+        {/* Blue team panel */}
+        <div className="flex-1">
+          <QuestionPanel team="blue" question={blueQ} onAnswer={handleBlueAnswer} disabled={disabled} cfg={cfg} questionTimer={questionTimer} />
+        </div>
+
+        {/* Tug of war center */}
+        <div className="w-1/4 min-w-[160px] max-w-[280px]">
+          <TugOfWar diff={diff} maxDiff={maxDiff} gameOver={phase === 'ended'} winner={winner} />
+        </div>
+
+        {/* Red team panel */}
+        <div className="flex-1">
+          <QuestionPanel team="red" question={redQ} onAnswer={handleRedAnswer} disabled={disabled} cfg={cfg} questionTimer={questionTimer} />
+        </div>
+      </div>
+
+      {/* Game over modal */}
+      {phase === 'ended' && (
+        <GameOverModal blueScore={blueScore} redScore={redScore} onRestart={startGame} cfg={cfg} />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f39335f12b3ce53',t:'MTc3NzQxMjE2OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

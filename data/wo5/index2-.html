@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giả lập Scratch - Tập Lưu Chương Trình</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap');
+        
+        body { font-family: 'Quicksand', sans-serif; background-color: #e0f2fe; }
+        
+        .scratch-blue { background-color: #4c97ff; }
+        .scratch-motion { background-color: #4c97ff; }
+        .scratch-looks { background-color: #9966ff; }
+        .scratch-sound { background-color: #cf63cf; }
+        .scratch-events { background-color: #ffbf00; }
+        .scratch-control { background-color: #ffab19; }
+        
+        .guide-pulse {
+            animation: pulse-blue 2s infinite;
+            z-index: 10;
+        }
+        @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 0 rgba(76, 151, 255, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(76, 151, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 151, 255, 0); }
+        }
+
+        .system-dialog {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+
+        .success-bg { background-color: #22c55e !important; } 
+        .error-bg { background-color: #ef4444 !important; }   
+        
+        .transition-all-custom { transition: all 0.3s ease; }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" onclick="handleGlobalClick(event)">
+
+    <!-- 1. Thanh Tiêu đề Scratch -->
+    <header class="scratch-blue h-12 flex items-center px-4 text-white text-sm shrink-0 z-50 shadow-md">
+        <img src="https://scratch.mit.edu/images/logo_sm.png" alt="Scratch" class="h-6 mr-4">
+        <div class="flex space-x-4 h-full items-center">
+            <div class="hover:bg-blue-600 px-2 h-full flex items-center cursor-pointer relative" id="btn-tap-tin" onclick="handleStep1(event)">
+                <span class="font-bold">Tập tin</span>
+                <div id="file-menu" class="hidden absolute top-full left-0 bg-white text-gray-800 w-48 shadow-lg border border-gray-200 py-1 rounded-b-md">
+                    <div class="px-4 py-2 hover:bg-blue-500 hover:text-white cursor-pointer" onclick="handleGlobalError(event)">Mới</div>
+                    <div class="px-4 py-2 hover:bg-blue-500 hover:text-white cursor-pointer border-b" onclick="handleGlobalError(event)">Mở từ máy tính</div>
+                    <div id="btn-luu-ve" class="px-4 py-2 hover:bg-blue-500 hover:text-white cursor-pointer font-bold bg-yellow-50" onclick="handleStep2(event)">Lưu về máy tính</div>
+                </div>
+            </div>
+            <div class="hover:bg-blue-600 px-2 h-full flex items-center cursor-pointer" onclick="handleGlobalError(event)">Chỉnh sửa</div>
+            <div class="hover:bg-blue-600 px-2 h-full flex items-center cursor-pointer" onclick="handleGlobalError(event)">Hướng dẫn</div>
+        </div>
+        <div class="ml-4 bg-blue-700 px-3 py-1 rounded-md text-xs font-bold border border-blue-400">Dự án Scratch</div>
+        
+        <!-- Timer Display -->
+        <div class="ml-auto flex items-center bg-red-600 px-4 py-1 rounded-full mr-4 text-xs font-bold shadow-lg border border-white/20">
+            <i class="fa-solid fa-clock mr-2 animate-pulse"></i>
+            <span id="timer-display">05:00</span>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <i class="fa-solid fa-user-circle text-xl cursor-pointer" onclick="handleGlobalError(event)"></i>
+        </div>
+    </header>
+
+    <!-- 2. Khu vực chính -->
+    <main class="flex flex-1 overflow-hidden bg-white">
+        <div class="w-16 border-r border-gray-200 flex flex-col items-center py-4 space-y-4 shrink-0 bg-gray-50">
+            <div class="flex flex-col items-center space-y-1 cursor-pointer" onclick="handleGlobalError(event)"><div class="w-5 h-5 rounded-full scratch-motion shadow-sm"></div><span class="text-[10px]">C.động</span></div>
+            <div class="flex flex-col items-center space-y-1 cursor-pointer" onclick="handleGlobalError(event)"><div class="w-5 h-5 rounded-full scratch-looks shadow-sm"></div><span class="text-[10px]">Hiển thị</span></div>
+            <div class="flex flex-col items-center space-y-1 cursor-pointer" onclick="handleGlobalError(event)"><div class="w-5 h-5 rounded-full scratch-sound shadow-sm"></div><span class="text-[10px]">Âm thanh</span></div>
+            <div class="flex flex-col items-center space-y-1 cursor-pointer" onclick="handleGlobalError(event)"><div class="w-5 h-5 rounded-full scratch-events shadow-sm"></div><span class="text-[10px]">Sự kiện</span></div>
+        </div>
+
+        <div class="w-64 border-r border-gray-200 bg-gray-50 p-4 space-y-4 shrink-0 overflow-y-auto">
+            <h3 class="font-bold text-gray-700">Chuyển động</h3>
+            <div class="scratch-motion text-white p-2 rounded-md text-sm cursor-pointer shadow-sm hover:brightness-110" onclick="handleGlobalError(event)">di chuyển 10 bước</div>
+            <div class="scratch-motion text-white p-2 rounded-md text-sm cursor-pointer shadow-sm hover:brightness-110" onclick="handleGlobalError(event)">xoay 15 độ</div>
+            <div class="scratch-motion text-white p-2 rounded-md text-sm cursor-pointer shadow-sm hover:brightness-110" onclick="handleGlobalError(event)">đi tới vị trí ngẫu nhiên</div>
+        </div>
+
+        <div class="flex-1 bg-gray-100 relative" onclick="handleGlobalError(event)">
+             <div class="absolute bottom-4 right-4 flex flex-col space-y-2">
+                 <button class="bg-white p-2 rounded-full shadow border hover:bg-gray-50" onclick="handleGlobalError(event)"><i class="fa-solid fa-plus"></i></button>
+                 <button class="bg-white p-2 rounded-full shadow border hover:bg-gray-50" onclick="handleGlobalError(event)"><i class="fa-solid fa-minus"></i></button>
+             </div>
+        </div>
+
+        <div class="w-96 border-l border-gray-200 bg-gray-50 flex flex-col shrink-0">
+            <div class="p-2 flex items-center justify-between border-b bg-white" onclick="handleGlobalError(event)">
+                <div class="flex space-x-4"><i class="fa-solid fa-flag text-green-500"></i><i class="fa-solid fa-stop text-red-500"></i></div>
+                <div class="flex space-x-2 text-gray-400"><i class="fa-solid fa-maximize"></i></div>
+            </div>
+            <div class="flex-1 flex items-center justify-center p-4" onclick="handleGlobalError(event)">
+                <div class="bg-white border w-full h-full rounded-lg shadow-inner flex items-center justify-center">
+                    <img src="https://scratch.mit.edu/static/assets/02008740c064972f3d517c2a7f502448.svg" alt="Mèo Scratch" class="h-32 drop-shadow-md">
+                </div>
+            </div>
+            <div class="h-40 bg-white border-t p-2" onclick="handleGlobalError(event)">
+                <div class="grid grid-cols-4 gap-1">
+                    <div class="border p-2 rounded-lg flex flex-col items-center bg-blue-50 shadow-sm">
+                        <img src="https://scratch.mit.edu/static/assets/02008740c064972f3d517c2a7f502448.svg" class="h-8">
+                        <span class="text-[10px] font-bold">Sprite1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. Hộp thoại Save As -->
+    <div id="save-dialog" class="system-dialog overflow-hidden" onclick="event.stopPropagation()">
+        <div class="bg-gray-100 p-3 flex justify-between items-center border-b font-bold text-gray-700">
+            <div class="flex items-center"><i class="fa-solid fa-folder-open mr-2 text-yellow-500"></i> Lưu tệp chương trình</div>
+            <i class="fa-solid fa-times cursor-pointer hover:text-red-500" onclick="handleGlobalError(event)"></i>
+        </div>
+        <div class="flex h-64">
+            <div class="w-32 bg-gray-50 border-r p-2 space-y-1 text-xs">
+                <div class="p-1 hover:bg-blue-100 rounded cursor-pointer" onclick="handleGlobalError(event)"><i class="fa-solid fa-file-invoice mr-1"></i> Documents</div>
+                <div id="btn-drive-d" class="p-1 hover:bg-blue-100 rounded font-bold text-blue-700 cursor-pointer" onclick="handleStep3(event)"><i class="fa-solid fa-hard-drive mr-1"></i> Dữ liệu (D:)</div>
+                <div class="p-1 hover:bg-blue-100 rounded cursor-pointer" onclick="handleGlobalError(event)"><i class="fa-solid fa-image mr-1 text-purple-400"></i> Pictures</div>
+            </div>
+            <div class="flex-1 p-4 bg-white text-sm text-gray-400 italic" onclick="handleGlobalError(event)">Thư mục trống...</div>
+        </div>
+        <div class="p-4 bg-gray-50 border-t space-y-3 shadow-inner">
+            <div class="flex items-center space-x-2">
+                <span class="text-sm w-20 font-bold text-gray-600">File name:</span>
+                <input id="input-filename" type="text" class="flex-1 border-2 p-1 text-sm outline-none focus:ring-2 focus:ring-blue-400 rounded transition-all" placeholder="Nhập tên tệp vào đây..." onfocus="handleStep4(event)" onclick="event.stopPropagation()">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="btn-save-final" class="bg-blue-500 text-white px-8 py-1 rounded shadow-md border border-blue-600 hover:bg-blue-600 transition-all font-bold" onclick="handleStep5(event)">Save</button>
+                <button class="bg-gray-200 px-6 py-1 rounded border border-gray-400 hover:bg-gray-300 transition-all" onclick="handleGlobalError(event)">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thanh Hướng dẫn -->
+    <div id="instruction-bar" class="scratch-blue text-white p-4 text-center font-bold shadow-lg flex justify-center items-center space-x-6 transition-all-custom z-[60]">
+        <div class="flex items-center space-x-3">
+            <i id="status-icon" class="fa-solid fa-lightbulb text-yellow-300"></i>
+            <span id="instruction-text" class="text-lg text-white">Chào mừng! Bước 1: Click vào thẻ "Tập tin"</span>
+        </div>
+        <div class="bg-white/20 px-4 py-1 rounded-full text-sm backdrop-blur-sm border border-white/30">
+            Bước <span id="step-num">1</span>/5
+        </div>
+    </div>
+
+    <!-- Màn hình Bắt đầu -->
+    <div id="start-overlay" class="fixed inset-0 bg-blue-600 z-[200] flex items-center justify-center">
+        <div class="bg-white p-10 rounded-3xl text-center max-w-sm shadow-2xl transform transition-transform border-4 border-yellow-400">
+            <div class="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <i class="fa-solid fa-play text-white text-4xl ml-2"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-blue-600 mb-2">Thử thách 5 phút!</h2>
+            <p class="text-gray-500 mb-8 font-medium">Bé hãy thực hiện 5 bước để lưu dự án Scratch của mình trong vòng 5 phút nhé!</p>
+            <button id="btn-start" onclick="initGame(event)" class="scratch-blue text-white font-bold py-4 px-10 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all w-full text-xl uppercase tracking-wider">
+                BẮT ĐẦU NGAY
+            </button>
+        </div>
+    </div>
+
+    <!-- Hiệu ứng âm thanh -->
+    <audio id="sndRight" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3" preload="auto"></audio>
+    <audio id="sndWrong" src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3" preload="auto"></audio>
+    <audio id="sndWin" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" preload="auto"></audio>
+    <audio id="sndHappy" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" loop preload="auto"></audio>
+
+    <script>
+        let currentStep = 1;
+        let isStarted = false;
+        let timeLeft = 300; 
+        let timerInterval;
+
+        const stepMessages = [
+            "Chào mừng! Bước 1: Click vào thẻ 'Tập tin'",
+            "Đúng rồi! Bước 2: Bé hãy chọn 'Lưu về máy tính' nhé.",
+            "Tuyệt quá! Bước 3: Bé chọn thư mục sẽ chứa tệp trong ổ đĩa D",
+            "Chính xác! Bước 4: Click vào ô 'File name' và gõ tên tệp.",
+            "Bé giỏi lắm! Cuối cùng: Nhấn nút 'Save' để hoàn tất nào."
+        ];
+
+        const bar = document.getElementById('instruction-bar');
+        const msg = document.getElementById('instruction-text');
+        const icon = document.getElementById('status-icon');
+        const stepNum = document.getElementById('step-num');
+        const fileMenu = document.getElementById('file-menu');
+        const saveDialog = document.getElementById('save-dialog');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        const sndRight = document.getElementById('sndRight');
+        const sndWrong = document.getElementById('sndWrong');
+        const sndWin = document.getElementById('sndWin');
+        const sndHappy = document.getElementById('sndHappy');
+
+        function playSound(audio) {
+            if (!audio) return;
+            audio.currentTime = 0;
+            audio.play().catch(e => console.warn("Lỗi phát âm thanh:", e));
+        }
+
+        // Đã xóa hàm speak() để tắt giọng nói hoàn toàn
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (timeLeft < 30) {
+                timerDisplay.parentElement.classList.remove('bg-red-600');
+                timerDisplay.parentElement.classList.add('bg-orange-500', 'animate-pulse');
+            }
+        }
+
+        function handleTimeOut() {
+            isStarted = false;
+            setStatus('error', "Đã hết thời gian! Bé hãy thử lại nhé.");
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
+        }
+
+        function initGame(e) {
+            e.stopPropagation();
+            document.getElementById('start-overlay').style.display = 'none';
+            isStarted = true;
+            sndHappy.volume = 0.15;
+            playSound(sndHappy);
+            
+            startTimer();
+            highlightNextStep();
+        }
+
+        let errorTimeout;
+
+        function setStatus(type, text) {
+            bar.classList.remove('scratch-blue', 'success-bg', 'error-bg', 'shake');
+            clearTimeout(errorTimeout);
+            
+            if (type === 'success') {
+                bar.classList.add('success-bg');
+                icon.className = 'fa-solid fa-circle-check text-white';
+                msg.innerText = text;
+                playSound(sndRight);
+                
+                errorTimeout = setTimeout(() => {
+                    bar.classList.remove('success-bg');
+                    bar.classList.add('scratch-blue');
+                    icon.className = 'fa-solid fa-lightbulb text-yellow-300';
+                }, 1500);
+            } else if (type === 'error') {
+                bar.classList.add('error-bg', 'shake');
+                icon.className = 'fa-solid fa-triangle-exclamation text-white';
+                
+                msg.innerText = text;
+                playSound(sndWrong);
+                
+                errorTimeout = setTimeout(() => {
+                    if(!isStarted) return;
+                    bar.classList.remove('error-bg', 'shake');
+                    bar.classList.add('scratch-blue');
+                    icon.className = 'fa-solid fa-lightbulb text-yellow-300';
+                    msg.innerText = stepMessages[currentStep - 1];
+                }, 2000);
+            }
+        }
+
+        function highlightNextStep() {
+            document.querySelectorAll('.guide-pulse').forEach(el => el.classList.remove('guide-pulse'));
+            if(currentStep === 1) document.getElementById('btn-tap-tin').classList.add('guide-pulse');
+            if(currentStep === 2) document.getElementById('btn-luu-ve').classList.add('guide-pulse');
+            if(currentStep === 3) document.getElementById('btn-drive-d').classList.add('guide-pulse');
+            if(currentStep === 4) document.getElementById('input-filename').classList.add('guide-pulse');
+            if(currentStep === 5) document.getElementById('btn-save-final').classList.add('guide-pulse');
+        }
+
+        function handleGlobalClick(e) {
+            if (!isStarted) return;
+            handleGlobalError(e);
+        }
+
+        function handleGlobalError(e) {
+            if (e) e.stopPropagation();
+            setStatus('error', "Bé bấm nhầm rồi. Thử lại nhé!");
+        }
+
+        function handleStep1(e) {
+            e.stopPropagation();
+            if(currentStep === 1) {
+                currentStep = 2;
+                fileMenu.classList.remove('hidden');
+                setStatus('success', stepMessages[1]);
+                stepNum.innerText = 2;
+                highlightNextStep();
+            } else if (currentStep > 1) {
+                fileMenu.classList.toggle('hidden');
+            } else {
+                handleGlobalError();
+            }
+        }
+
+        function handleStep2(e) {
+            e.stopPropagation();
+            if(currentStep === 2) {
+                currentStep = 3;
+                fileMenu.classList.add('hidden');
+                saveDialog.style.display = 'block';
+                setStatus('success', stepMessages[2]);
+                stepNum.innerText = 3;
+                highlightNextStep();
+            } else {
+                handleGlobalError();
+            }
+        }
+
+        function handleStep3(e) {
+            e.stopPropagation();
+            if(currentStep === 3) {
+                currentStep = 4;
+                document.getElementById('btn-drive-d').classList.add('bg-blue-200');
+                setStatus('success', stepMessages[3]);
+                stepNum.innerText = 4;
+                highlightNextStep();
+            } else {
+                handleGlobalError();
+            }
+        }
+
+        function handleStep4(e) {
+            e.stopPropagation();
+            if(currentStep === 4) {
+                currentStep = 5;
+                setStatus('success', stepMessages[4]);
+                stepNum.innerText = 5;
+                highlightNextStep();
+            } else if (currentStep < 4) {
+                handleGlobalError();
+            }
+        }
+
+        function handleStep5(e) {
+            e.stopPropagation();
+            if(currentStep === 5) {
+                clearInterval(timerInterval);
+                playSound(sndWin);
+                saveDialog.style.display = 'none';
+                
+                msg.innerText = "Chúc mừng! Bé đã xuất sắc hoàn thành thử thách!";
+                bar.classList.add('success-bg');
+                icon.className = 'fa-solid fa-trophy text-yellow-300';
+                isStarted = false;
+
+                setTimeout(() => {
+                    location.reload(); 
+                }, 5000);
+            } else {
+                handleGlobalError();
+            }
+        }
+    </script>
+</body>
+</html>

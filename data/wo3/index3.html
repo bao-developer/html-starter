@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thực hành Scratch Lớp 4 - Thử thách kể chuyện</title>
+    <style>
+        :root {
+            --scratch-blue: #4d97ff;
+            --scratch-category-width: 60px;
+            --scratch-palette-width: 220px;
+            --scratch-stage-width: 280px;
+            --motion-color: #4c97ff;
+            --looks-color: #9966ff;
+            --events-color: #ffbf00;
+            --control-color: #ffab19;
+            --border-color: #d9d9d9;
+            --success-bg: #4caf50;
+            --error-bg: #ff4d4d;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f2;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: var(--scratch-blue);
+            height: 40px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            color: white;
+            font-size: 13px;
+            gap: 15px;
+            z-index: 100;
+        }
+        .logo { font-weight: bold; font-size: 16px; margin-right: 10px; }
+        .menu-item { cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+        .menu-item:hover { background: rgba(255,255,255,0.2); }
+        .timer-display {
+            margin-left: auto;
+            background: rgba(0,0,0,0.2);
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        /* --- Thanh Hướng dẫn --- */
+        #feedback-area {
+            background-color: #ffffff;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s, color 0.3s;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .status-default { color: #333; }
+        .status-error { color: #fff; background-color: var(--error-bg) !important; animation: shake 0.4s; }
+        .status-success-step { color: #fff; background-color: var(--success-bg) !important; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* --- Bố cục chính --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar Danh mục */
+        .sidebar {
+            width: var(--scratch-category-width);
+            background: white;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 100%; padding: 5px 0; }
+        .cat-item.active { background-color: #f0f0f2; border-left: 3px solid var(--scratch-blue); }
+        .cat-dot { width: 20px; height: 20px; border-radius: 50%; margin-bottom: 3px; border: 1px solid transparent; }
+        .cat-label { font-size: 8px; color: #555; font-weight: bold; }
+
+        /* Palette Khối lệnh */
+        .palette {
+            width: var(--scratch-palette-width);
+            background: white;
+            border-right: 1px solid var(--border-color);
+            padding: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .block-list { display: none; }
+        .block-list.active { display: block; }
+        .palette h3 { font-size: 12px; margin: 0 0 10px 0; color: #555; text-transform: uppercase; }
+
+        .block {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: grab;
+            width: fit-content;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .block-event { background-color: var(--events-color); border-radius: 15px 15px 4px 4px; }
+        .block-looks { background-color: var(--looks-color); display: flex; align-items: center; gap: 5px; }
+        .block input { 
+            border: none; border-radius: 10px; padding: 1px 6px; font-size: 11px; 
+            text-align: center; outline: none; background: white; color: #333; width: auto;
+        }
+
+        /* --- KHU VỰC LẬP TRÌNH --- */
+        .workspace {
+            flex: 1; 
+            background-color: white;
+            background-image: radial-gradient(#d0d0d0 1.2px, transparent 1.2px);
+            background-size: 24px 24px;
+            position: relative;
+            overflow: auto;
+            padding: 30px;
+            border-right: 1px solid var(--border-color);
+        }
+        .drop-zone { min-height: 100%; display: flex; flex-direction: column; gap: 0; }
+
+        /* --- Sân khấu & Thông tin --- */
+        .right-side {
+            width: var(--scratch-stage-width);
+            display: flex;
+            flex-direction: column;
+            background: #f0f0f2;
+            padding: 5px;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .stage-view {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+        }
+        #sprite { 
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); 
+            font-size: 60px; transition: all 0.3s; opacity: 0; z-index: 5;
+        }
+        .bubble { 
+            position: absolute; background: white; border: 2px solid #555; border-radius: 12px; 
+            padding: 5px 10px; font-size: 11px; bottom: 65%; left: 55%; 
+            display: none; z-index: 10; white-space: nowrap;
+        }
+        .bubble::after { 
+            content: ''; position: absolute; bottom: -8px; left: 10px; 
+            border-width: 8px 8px 0; border-style: solid; border-color: #555 transparent; 
+        }
+
+        .sprite-info { 
+            background: white; border: 1px solid var(--border-color); border-radius: 4px; 
+            padding: 8px; display: flex; flex-direction: column; font-size: 10px; gap: 6px; 
+        }
+        .info-row { display: flex; justify-content: space-between; align-items: center; }
+        .info-box input { width: 40px; border: 1px solid #ccc; border-radius: 8px; padding: 2px; text-align: center; background: #f9f9f9; }
+
+        /* --- Các Modal (Màn hình thông báo) --- */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        #intro-modal { background: var(--scratch-blue); }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 550px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h2 { color: var(--scratch-blue); margin-top: 0; font-size: 2rem; }
+        .modal-content p { font-size: 1.3rem; line-height: 1.6; color: #444; margin-bottom: 30px; font-weight: 500; }
+
+        .btn-start {
+            background: var(--control-color);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #cf8b17;
+            transition: all 0.1s;
+        }
+        .btn-start:active { transform: translateY(5px); box-shadow: none; }
+
+        #success-modal {
+            display: none;
+            background: rgba(77, 151, 255, 0.98);
+            flex-direction: column;
+            color: white;
+        }
+        
+        .voice-status {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            font-size: 11px;
+            color: #888;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH GIỚI THIỆU TRƯỚC KHI LÀM BÀI -->
+    <div id="intro-modal" class="overlay">
+        <div class="modal-content">
+            <h2>THỬ THÁCH SCRATCH</h2>
+            <p>Em hãy chọn và kéo thả các lệnh để tạo chương trình Scratch để kể chuyện. Bạn có 3 phút để làm bài.</p>
+            <button class="btn-start" onclick="startGame()">Bắt đầu làm bài</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo">Scratch</div>
+        <div class="menu-item">Tập tin</div>
+        <div class="menu-item">Chỉnh sửa</div>
+        <div class="menu-item" id="music-btn" onclick="toggleMusic(event)">🔈 Nhạc nền</div>
+        <div class="timer-display">⏱️ <span id="timer-text">03:00</span></div>
+    </header>
+
+    <div id="feedback-area" class="status-default">
+        Bước 1: Chọn nhóm lệnh Sự kiện (Màu vàng cam)
+    </div>
+
+    <div class="main-container" id="game-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="cat-item" id="sidebar-motion" onclick="selectCategory('motion')">
+                <div class="cat-dot" style="background: var(--motion-color);"></div>
+                <div class="cat-label">Chuyển động</div>
+            </div>
+            <div class="cat-item" id="sidebar-looks" onclick="selectCategory('looks')">
+                <div class="cat-dot" style="background: var(--looks-color);"></div>
+                <div class="cat-label">Hiển thị</div>
+            </div>
+            <div class="cat-item" id="sidebar-events" onclick="selectCategory('events')">
+                <div class="cat-dot" style="background: var(--events-color);"></div>
+                <div class="cat-label">Sự kiện</div>
+            </div>
+        </div>
+
+        <!-- Palette -->
+        <div class="palette">
+            <div id="list-motion" class="block-list">
+                <h3>Chuyển động</h3>
+                <div class="block" style="background: var(--motion-color);" onclick="handleMistake()">di chuyển 10 bước</div>
+            </div>
+            <div id="list-events" class="block-list">
+                <h3>Sự kiện</h3>
+                <div class="block block-event" id="blk-flag" draggable="true" ondragstart="onDragStart(event, 'flag')">Khi bấm vào 🚩</div>
+            </div>
+            <div id="list-looks" class="block-list">
+                <h3>Hiển thị</h3>
+                <div class="block block-looks" id="blk-say" draggable="true" ondragstart="onDragStart(event, 'say')">
+                    nói <input type="text" id="inp-text" style="width:75px" value="Xin chào!" onfocus="checkAction('input_text')"> trong <input type="text" id="inp-num" style="width:25px" value="2" onfocus="checkAction('input_num')"> giây
+                </div>
+            </div>
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace" id="workspace-container" ondragover="allowDrop(event)" ondrop="onDrop(event)" onclick="handleMistake('workspace')">
+            <div class="drop-zone" id="drop-zone"></div>
+        </div>
+
+        <!-- Stage Area -->
+        <div class="right-side">
+            <div class="stage-view" onclick="handleMistake()">
+                <div id="bubble" class="bubble">Xin chào!</div>
+                <div id="sprite">🐱</div>
+            </div>
+            <div class="sprite-info">
+                <div class="info-row">
+                    <div>Nhân vật: <input type="text" value="Sprite1" disabled style="width:50px"></div>
+                    <div>x: <input type="text" value="0" disabled></div>
+                </div>
+                <div class="info-row">
+                    <div>y: <input type="text" value="0" disabled></div>
+                    <div>Size: <input type="text" value="100" disabled></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH KẾT QUẢ -->
+    <div id="success-modal" class="overlay">
+        <h1 id="success-text" style="font-size: 2.5rem; margin-bottom: 20px; line-height: 1.4; text-align: center;"></h1>
+        <button onclick="location.reload()" style="padding: 15px 45px; border-radius: 30px; border:none; cursor:pointer; font-size: 1.2rem; font-weight: bold; background: white; color: var(--scratch-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.15);">LÀM LẠI BÀI TẬP</button>
+    </div>
+
+    <div id="voice-status" class="voice-status">AI đang nói...</div>
+
+    <script>
+        const apiKey = ""; 
+        let currentStep = 0;
+        let isMusicPlaying = false;
+        let audioInited = false;
+        let timeLeft = 180; 
+        let timerInterval;
+        let gameFinished = false;
+        let mistakeCount = 0; 
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        async function startGame() {
+            document.getElementById('intro-modal').style.display = 'none';
+            autoInitAudio(); 
+            // Phát lời thoại đề bài khi bắt đầu
+            await speak("Em hãy chọn và kéo thả các lệnh để tạo chương trình Scratch để kể chuyện. Bạn có 3 phút để làm bài.");
+        }
+
+        // --- Hệ thống âm thanh FX ---
+        function playEffect(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        async function speak(text) {
+            const status = document.getElementById('voice-status');
+            status.style.display = 'block';
+            try {
+                let retries = 3;
+                let result;
+                while (retries > 0) {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `Say warmly in Vietnamese: ${text}` }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                            }
+                        })
+                    });
+                    if (response.ok) { result = await response.json(); break; }
+                    retries--;
+                }
+                if (result) {
+                    const base64Audio = result.candidates[0].content.parts[0].inlineData.data;
+                    const sampleRate = parseInt(result.candidates[0].content.parts[0].inlineData.mimeType.match(/rate=(\d+)/)[1]);
+                    const audioBuffer = base64ToUint8Array(base64Audio);
+                    const wavBlob = pcm16ToWav(audioBuffer, sampleRate);
+                    const audio = new Audio(URL.createObjectURL(wavBlob));
+                    audio.play();
+                }
+            } catch (e) { console.error(e); }
+            finally { status.style.display = 'none'; }
+        }
+
+        function base64ToUint8Array(base64) {
+            const binary = atob(base64); const array = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+            return array;
+        }
+
+        function pcm16ToWav(pcmBuffer, sampleRate) {
+            const header = new ArrayBuffer(44); const view = new DataView(header);
+            view.setUint32(0, 0x46464952, true); view.setUint32(4, 36 + pcmBuffer.length, true);
+            view.setUint32(8, 0x45564157, true); view.setUint32(12, 0x20746d66, true); 
+            view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); 
+            view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+            view.setUint32(36, 0x61746164, true); view.setUint32(40, pcmBuffer.length, true);
+            return new Blob([header, pcmBuffer], { type: 'audio/wav' });
+        }
+
+        // --- Logic Thực hành ---
+        function checkAction(actionType) {
+            if (gameFinished) return;
+            let isCorrect = false;
+            switch(currentStep) {
+                case 0: if(actionType === 'events_cat') isCorrect = true; break;
+                case 1: if(actionType === 'flag_drag') isCorrect = true; break;
+                case 2: if(actionType === 'looks_cat') isCorrect = true; break;
+                case 3: if(actionType === 'say_drag') isCorrect = true; break;
+                case 4: if(actionType === 'input_text') isCorrect = true; break;
+                case 5: if(actionType === 'input_num') isCorrect = true; break;
+            }
+
+            if (isCorrect) handleSuccess();
+            else if (!actionType.includes('input')) handleMistake();
+        }
+
+        function handleSuccess() {
+            if (currentStep < 5) {
+                currentStep++;
+                if (currentStep === 5) {
+                    document.getElementById('ws-inp-num').onchange = () => finishGame();
+                } else if (currentStep === 4) {
+                     document.getElementById('ws-inp-text').onblur = () => { if(currentStep === 4) handleSuccess(); };
+                }
+                updateFeedback("", 'success-step');
+            } else {
+                finishGame();
+            }
+        }
+
+        function handleMistake(location) {
+            if (gameFinished || location === 'workspace') return;
+            mistakeCount++;
+            updateFeedback("Thao tác chưa đúng, hãy thử lại!", "error");
+        }
+
+        function finishGame() {
+            if(gameFinished) return;
+            gameFinished = true;
+            clearInterval(timerInterval);
+            
+            let finalMsg = mistakeCount >= 2 ? "Bạn làm lại để vượt qua thử thách nhé" : "Tuyệt vời! Bạn đã vượt qua thử thách";
+            document.getElementById('success-text').innerText = finalMsg;
+            document.getElementById('success-modal').style.display = 'flex';
+            
+            if (mistakeCount < 2) playEffect('correct');
+            else playEffect('error');
+            
+            speak(finalMsg);
+        }
+
+        function updateFeedback(msg, type = 'default') {
+            const area = document.getElementById('feedback-area');
+            if (type === 'error') {
+                area.innerText = msg; area.className = 'status-error';
+                playEffect('error');
+                setTimeout(() => { if(!gameFinished) { area.className = 'status-default'; area.innerText = getCurrentStepInstruction(); } }, 2000);
+            } else if (type === 'success-step') {
+                area.innerText = "Rất tuyệt! 🎉"; area.className = 'status-success-step';
+                playEffect('correct');
+                setTimeout(() => { 
+                    if(!gameFinished) { 
+                        area.className = 'status-default'; area.innerText = getCurrentStepInstruction(); 
+                        if(currentStep === 1) showCategory('events');
+                        if(currentStep === 3) showCategory('looks');
+                    } 
+                }, 1000);
+            } else {
+                area.innerText = msg; area.className = 'status-default';
+            }
+        }
+
+        function getCurrentStepInstruction() {
+            const instructions = [
+                "Bước 1: Chọn nhóm lệnh Sự kiện (Màu vàng cam)",
+                "Bước 2: Kéo thả câu lệnh 'Khi bấm vào 🚩' vào phía trên bên trái của khu vực chương trình",
+                "Bước 3: Chọn nhóm lệnh Hiển thị (Màu tím)",
+                "Bước 4: Kéo thả và ghép nối lệnh 'Nói... trong... giây' vào ngay dưới câu lệnh đã có",
+                "Bước 5: Nháy chuột vào ô này rồi gõ nội dung lời nói của mèo con",
+                "Bước 6: Nháy chuột vào ô này rồi gõ thời gian hiển thị lời nói",
+                "Hoàn thành!"
+            ];
+            return instructions[currentStep] || "Hoàn thành!";
+        }
+
+        function selectCategory(cat) {
+            checkAction(cat + '_cat');
+            showCategory(cat);
+        }
+
+        function showCategory(cat) {
+            document.querySelectorAll('.cat-item').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.block-list').forEach(l => l.classList.remove('active'));
+            const targetId = 'sidebar-' + (cat === 'motion' ? 'motion' : (cat === 'looks' ? 'looks' : 'events'));
+            document.getElementById(targetId).classList.add('active');
+            document.getElementById('list-' + cat).classList.add('active');
+        }
+
+        function onDragStart(event, blockType) { 
+            if (gameFinished) return;
+            event.dataTransfer.setData("blockType", blockType); 
+        }
+
+        function allowDrop(event) { event.preventDefault(); }
+
+        function onDrop(event) {
+            event.preventDefault();
+            if (gameFinished) return;
+            const blockType = event.dataTransfer.getData("blockType");
+            const zone = document.getElementById('drop-zone');
+            
+            if (currentStep === 1 && blockType === 'flag') {
+                const clone = document.querySelector('#list-events .block').cloneNode(true);
+                zone.appendChild(clone); document.getElementById('sprite').style.opacity = '1';
+                checkAction('flag_drag');
+            } else if (currentStep === 3 && blockType === 'say') {
+                const clone = document.querySelector('#list-looks .block').cloneNode(true);
+                const inputs = clone.querySelectorAll('input');
+                inputs[0].id = "ws-inp-text"; inputs[1].id = "ws-inp-num";
+                inputs[0].onfocus = () => checkAction('input_text'); 
+                inputs[1].onfocus = () => checkAction('input_num');
+                inputs[0].oninput = (e) => document.getElementById('bubble').innerText = e.target.value;
+                zone.appendChild(clone); document.getElementById('bubble').style.display = 'block';
+                checkAction('say_drag');
+            } else { handleMistake(); }
+        }
+
+        function autoInitAudio() {
+            if (audioInited) return; audioInited = true;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            isMusicPlaying = true; document.getElementById('music-btn').innerText = '🔊 Nhạc nền';
+            startMusicLoop(); startTimer();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (gameFinished) return;
+                timeLeft--;
+                const m = Math.floor(timeLeft/60).toString().padStart(2,'0');
+                const s = (timeLeft%60).toString().padStart(2,'0');
+                document.getElementById('timer-text').innerText = `${m}:${s}`;
+                if (timeLeft <= 0) { clearInterval(timerInterval); mistakeCount = 2; finishGame(); }
+            }, 1000);
+        }
+
+        function toggleMusic(e) {
+            e.stopPropagation(); isMusicPlaying = !isMusicPlaying;
+            document.getElementById('music-btn').innerText = isMusicPlaying ? '🔊 Nhạc nền' : '🔈 Nhạc nền';
+        }
+
+        function startMusicLoop() {
+            const melody = [261.63, 329.63, 392.00, 349.23]; let i = 0;
+            setInterval(() => {
+                if (!isMusicPlaying) return;
+                const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(melody[i % 4], audioCtx.currentTime);
+                g.gain.setValueAtTime(0.003, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+                osc.connect(g); g.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 1.2); i++;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
